@@ -8,6 +8,27 @@
   let status = '';
 
   let isSpeakJsLoaded = false;
+
+  onMount(() => {
+    loadSpeakJS();
+  });
+
+  async function readWithOpenAi(text: string) {
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    });
+
+    if (!res.ok) {
+      alert('TTS request failed');
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    new Audio(url).play();
+  }
+
   function loadSpeakJS() {
     if (isSpeakJsLoaded)
      {
@@ -32,12 +53,15 @@
     }
     window.speak(text, { amplitude: 100, pitch: 50, speed: 175 });
   }
-
+  
   function readWithBrowserTTS(text: string) {
     const utterance = new SpeechSynthesisUtterance(text);
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
   }
+
+  
+
 
   async function fetchArticleText(title: string): Promise<string> {
     const res = await fetch(
@@ -71,23 +95,22 @@
       case 'speakjs':
         await readWithSpeakJs(text);
         break;
+      case 'openai':
+        await readWithOpenAi(text);
+        break;
       default:
         await readWithBrowserTTS(text);
     }
     status = '🔊 Reading started...';
   }
-
-  onMount(() => {
-    loadSpeakJS();
-  });
-
 </script>
 
 
 <h1>WikiReader</h1>
 <select bind:value={ttsType}>
   <option value="default" selected>Browser</option>
-  <option value="speakjs">Speak.js</option> 
+  <option value="speakjs">Speak.js</option>
+  <option value="openai">Open AI</option>
 </select>
 
 <br />
