@@ -7,12 +7,6 @@
   let wikiText = '';
   let status = '';
 
-  let isSpeakJsLoaded = false;
-
-  onMount(() => {
-    loadSpeakJS();
-  });
-
   async function readWithOpenAi(text: string) {
     const res = await fetch('/api/tts', {
       method: 'POST',
@@ -28,40 +22,12 @@
     const url = URL.createObjectURL(blob);
     new Audio(url).play();
   }
-
-  function loadSpeakJS() {
-    if (isSpeakJsLoaded)
-     {
-        return;
-     }
-
-    const speakJsElement = document.createElement("script");
-    speakJsElement.src = "/speakjs/speakClient.js";
-    speakJsElement.onload = () => {
-      isSpeakJsLoaded = true;
-      console.log("Speak.js loaded");
-    };
-    document.body.appendChild(speakJsElement);
-  }
-
-  async function readWithSpeakJs(text: string) {
-    console.log(typeof window.speak === 'function')
-    console.log(window.speak);
-    if (!window.speak) {
-      alert("Speak.js not loaded yet");
-      return;
-    }
-    window.speak(text, { amplitude: 100, pitch: 50, speed: 175 });
-  }
   
   function readWithBrowserTTS(text: string) {
     const utterance = new SpeechSynthesisUtterance(text);
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
   }
-
-  
-
 
   async function fetchArticleText(title: string): Promise<string> {
     const res = await fetch(
@@ -92,9 +58,6 @@
 
   async function readText(text: string) {
     switch (ttsType) {
-      case 'speakjs':
-        await readWithSpeakJs(text);
-        break;
       case 'openai':
         await readWithOpenAi(text);
         break;
@@ -109,7 +72,6 @@
 <h1>WikiReader</h1>
 <select bind:value={ttsType}>
   <option value="default" selected>Browser</option>
-  <option value="speakjs">Speak.js</option>
   <option value="openai">Open AI</option>
 </select>
 
@@ -123,14 +85,3 @@
 <textarea bind:value={wikiText} placeholder="Paste Text"></textarea>
 <button on:click={() => readText(wikiText)}>Read Text</button>
 <p>{status}</p>
-
-<br />
-
-<button on:click={() => {
-  const ac = new AudioContext()
-  const o = ac.createOscillator();
-  o.connect(ac.destination);
-  o.start();
-  o.stop(ac.currentTime + 0.25);
-}}>Test sound</button>
-<div id="audio"></div>
