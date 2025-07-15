@@ -1,11 +1,14 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+  import { extractTitleFromUrl, fetchArticle } from '$lib/wikipedia/wiki';
+  import { parseWikipediaHtml, flattenWikiSections } from '$lib/wikipedia/parser';
+
 
 
   let ttsType = 'default';
   let wikiUrl = '';
-  let wikiText = '';
+  let articleText = '';
   let status = '';
+  let readFullArticle = false;
 
   async function readWithOpenAi(text: string) {
     const res = await fetch('/api/tts', {
@@ -29,31 +32,25 @@
     speechSynthesis.speak(utterance);
   }
 
-  async function fetchArticleText(title: string): Promise<string> {
-    const res = await fetch(
-      `https://en.wikipedia.org/w/api.php?origin=*&action=query&prop=extracts&explaintext=true&format=json&titles=${encodeURIComponent(title)}`
-    );
-    const data = await res.json();
-    const page = Object.values(data.query.pages)[0];
-    return page.extract || '';
-  }
-
-  async function handleUrlRead() {
-    status = '';
-    const match = url.match(/\/wiki\/(.+)$/);
-    const title = match ? decodeURIComponent(match[1]) : null;
+  async function handleUrlFetch() {
+    articleText = '';
+    const title = extractTitleFromUrl(wikiUrl);
     if (!title) {
-      status = '⚠️ Invalid Wikipedia URL';
+      articleText = '⚠️ Invalid Wikipedia URL';
       return;
     }
 
-    const text = await fetchArticleText(title);
-    if (!text) {
-      status = '❌ Article not found or empty';
-      return;
+    try {
+      const htmlArticle = await fetchArticle(title);
+      const parsedArticle = await parseWikipediaHtml(htmlArticle);
+      articleText = flattenWikiSections(parsedArticle, {
+        headingPrefix: level => '#'.repeat(level) + ' ',
+        indent: () => '',
+      });
+    } catch (e) {
+      articleText = `❌ Error: ${(e as Error).message}`;
     }
-
-    await readText(text);    
+    
   }
 
   async function readText(text: string) {
@@ -62,7 +59,7 @@
         await readWithOpenAi(text);
         break;
       default:
-        await readWithBrowserTTS(text);
+        readWithBrowserTTS(text);
     }
     status = '🔊 Reading started...';
   }
@@ -78,10 +75,11 @@
 <br />
 
 <input bind:value={wikiUrl} placeholder="Paste Wikipedia URL" />
-<button on:click={handleUrlRead}>Read Article</button>
+<label><input type="checkbox" bind:checked={readFullArticle} />Read full article (TBD)</label>
+<button on:click={handleUrlFetch}>Fetch Article</button>
 
 <br />
 
-<textarea bind:value={wikiText} placeholder="Paste Text"></textarea>
-<button on:click={() => readText(wikiText)}>Read Text</button>
+<textarea bind:value={articleText} placeholder="Paste Text"></textarea>
+<button on:click={() => readText(articleText)}>Read Text</button>
 <p>{status}</p>
