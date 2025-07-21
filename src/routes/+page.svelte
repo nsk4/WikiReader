@@ -1,6 +1,6 @@
 <script lang="ts">
   import { extractTitleFromUrl, fetchArticle } from '$lib/wikipedia/wiki';
-  import { parseWikipediaHtml, flattenWikiSections } from '$lib/wikipedia/parser';
+  import { parseWikipediaHtml, flattenWikiSections, type WikiSection } from '$lib/wikipedia/parser';
 
 
 
@@ -43,7 +43,16 @@
     try {
       const htmlArticle = await fetchArticle(title);
       const parsedArticle = await parseWikipediaHtml(htmlArticle);
-      articleText = flattenWikiSections(parsedArticle, {
+
+      let selectedArticle: WikiSection[];
+      if(readFullArticle) {
+        selectedArticle = parsedArticle;
+      }
+      else {
+        selectedArticle = [parsedArticle[0]];
+      }
+
+      articleText = flattenWikiSections(selectedArticle, {
         headingPrefix: level => '#'.repeat(level) + ' ',
         indent: () => '',
       });
@@ -75,7 +84,7 @@
 <br />
 
 <input bind:value={wikiUrl} placeholder="Paste Wikipedia URL" />
-<label><input type="checkbox" bind:checked={readFullArticle} />Read full article (TBD)</label>
+<label><input type="checkbox" bind:checked={readFullArticle} />Read full article</label>
 <button on:click={handleUrlFetch}>Fetch Article</button>
 
 <br />
