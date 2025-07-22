@@ -1,35 +1,39 @@
 <script lang="ts">
   import { extractTitleFromUrl, fetchArticle } from '$lib/wikipedia/wiki';
   import { parseWikipediaHtml, flattenWikiSections, type WikiSection } from '$lib/wikipedia/parser';
-
-
+    import { TTSSectionPlayer } from '$lib/ttsManager';
 
   let ttsType = 'default';
   let wikiUrl = '';
   let articleText = '';
-  let status = '';
   let readFullArticle = false;
+  let textSections: string[] = [];
+  let ttsPlayer: TTSSectionPlayer | null = null;
 
-  async function readWithOpenAi(text: string) {
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      body: JSON.stringify({ text })
-    });
+  async function readTestWithChunks() {
+    let player = new TTSSectionPlayer(["paragraph 1","paragraph 2","paragraph 3"]);
+    player.start();
+  }
 
-    if (!res.ok) {
-      alert('TTS request failed');
-      return;
-    }
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    new Audio(url).play();
+  async function readWithOpenAi(textSections: string[]) { 
+    ttsPlayer = new TTSSectionPlayer(textSections);
+    ttsPlayer.start();
   }
   
-  function readWithBrowserTTS(text: string) {
+  function readWithBrowserTTS(textSections: string[]) {
+    const text = textSections.join('\n\n');
     const utterance = new SpeechSynthesisUtterance(text);
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
+  }
+
+  function stopRead() {
+    if(speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+    }
+    if (ttsPlayer) {
+      ttsPlayer.stop();
+    }
   }
 
   async function handleUrlFetch() {
@@ -52,28 +56,29 @@
         selectedArticle = [parsedArticle[0]];
       }
 
-      articleText = flattenWikiSections(selectedArticle, {
+      // TODO: Rework this to query individual subsection chunks instead of only major sections
+      textSections = flattenWikiSections(selectedArticle, {
         headingPrefix: level => '#'.repeat(level) + ' ',
         indent: () => '',
       });
+      articleText = textSections.join('\n\n');
     } catch (e) {
       articleText = `❌ Error: ${(e as Error).message}`;
     }
-    
   }
 
-  async function readText(text: string) {
+  async function readText() {
     switch (ttsType) {
       case 'openai':
-        await readWithOpenAi(text);
+        await readWithOpenAi(textSections);
         break;
       default:
-        readWithBrowserTTS(text);
+        readWithBrowserTTS(textSections);
     }
-    status = '🔊 Reading started...';
   }
 </script>
 
+<!-- TODO: Split article parsing from text area input testing -->
 
 <h1>WikiReader</h1>
 <select bind:value={ttsType}>
@@ -89,6 +94,13 @@
 
 <br />
 
-<textarea bind:value={articleText} placeholder="Paste Text"></textarea>
-<button on:click={() => readText(articleText)}>Read Text</button>
-<p>{status}</p>
+<textarea bind:value={articleText} placeholder="Paste Text"  on:change={(event)=> { 
+  console.log(event?.target?.value);
+  textSections=[event?.target?.value || '']; 
+  }}></textarea>
+<button on:click={readText}>Read Text</button>
+<button on:click={stopRead}>Stop Reading</button>
+
+<br />
+
+<button on:click={readTestWithChunks}>Read with Chunks</button>

@@ -53,10 +53,9 @@ export function flattenWikiSections(
     headingPrefix?: (level: number) => string;
     indent?: (level: number) => string;
   }
-): string {
+): string[] {
   return sections
-    .map(section => flattenSingleSection(section, options))
-    .join('\n\n');
+    .map(section => flattenSingleSection(section, options));
 }
 
 function flattenSingleSection(
