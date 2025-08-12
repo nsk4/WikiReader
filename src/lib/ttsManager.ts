@@ -2,6 +2,8 @@ export interface TTSSection {
   text: string;
   audioBlob: Blob;
   audioLoaded: boolean;
+  audioLoading: boolean;
+  audioPromise: Promise<Blob> | null;
 }
 
 export class TTSSectionPlayer {
@@ -15,7 +17,9 @@ export class TTSSectionPlayer {
         {
             return {text: section,
                     audioBlob: new Blob(), 
-                    audioLoaded: false
+                    audioLoaded: false,
+                    audioLoading: false,
+                    audioPromise: null
                 } as TTSSection;}
         );
     this.isPlaying = false;
@@ -38,14 +42,16 @@ export class TTSSectionPlayer {
         console.log("Chunk playing:", i);
 
         if(!this.queue[i].audioLoaded) {
-            await this.prefetchTTS(this.queue[i]);
+            this.prefetchTTS(this.queue[i]);
+            await this.queue[i].audioPromise; 
+            // TODO: audio loading could fail
         }
+
         let playing = this.playAudioBlob(this.queue[i].audioBlob);
 
         // Preload next section
         if (i+1 < this.queue.length) {
-            // TODO: check if we need to await here
-            await this.prefetchTTS(this.queue[i+1]);
+            this.prefetchTTS(this.queue[i+1]);
         }
 
         await playing;
@@ -84,6 +90,9 @@ export class TTSSectionPlayer {
     }
 
     const stream = response.body;
+    if (!stream) {
+      throw new Error('TTS response body is null');
+    }
     const reader = stream.getReader();
     const chunks: Uint8Array[] = [];
 
@@ -106,8 +115,25 @@ export class TTSSectionPlayer {
         console.log("Audio already loaded for section: ", section.text);
         return;
     }
-    section.audioBlob = await this.fetchTTS(section.text);
-    section.audioLoaded = true;
+
+    if(section.audioLoading && section.audioPromise) {
+        console.log("Audio already loading for section: ", section.text);
+        return;
+    }
+
+    section.audioLoaded = false;
+    section.audioLoading = true;
+    section.audioPromise = this.fetchTTS(section.text);
+    section.audioPromise.then((blob) => {
+        section.audioBlob = blob;
+        section.audioLoading = false;
+        section.audioLoaded = true;
+        
+    }).catch((error) => {
+        console.error("Error prefetching TTS for section:", section.text, error);
+        section.audioLoading = false;
+        section.audioLoaded = false;
+    });
   }
 
   stop() {
