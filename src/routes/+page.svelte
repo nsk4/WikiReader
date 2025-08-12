@@ -1,106 +1,84 @@
+
 <script lang="ts">
+  import type WikiSection from "$lib/wikipedia/WikiSection";
+  import WikiSectionDisplay from "$lib/components/WikiSectionDisplay.svelte";
+
   import { extractTitleFromUrl, fetchArticle } from '$lib/wikipedia/wiki';
-  import { parseWikipediaHtml, flattenWikiSections, type WikiSection } from '$lib/wikipedia/parser';
-    import { TTSSectionPlayer } from '$lib/ttsManager';
+  import { parseWikipediaHtml, flattenWikiSections } from '$lib/wikipedia/parser';
+  import { TTSSectionPlayer } from "$lib/ttsManager";
 
-  let ttsType = 'default';
+    
   let wikiUrl = '';
-  let articleText = '';
-  let readFullArticle = false;
-  let textSections: string[] = [];
+  let statusText = ''; // ERROR
+  let sections: WikiSection[];
   let ttsPlayer: TTSSectionPlayer | null = null;
+  let readFullArticle = false;
 
-  async function readTestWithChunks() {
-    let player = new TTSSectionPlayer(["paragraph 1","paragraph 2","paragraph 3"]);
-    player.start();
-  }
-
-  async function readWithOpenAi(textSections: string[]) { 
-    ttsPlayer = new TTSSectionPlayer(textSections);
-    ttsPlayer.start();
-  }
-  
-  function readWithBrowserTTS(textSections: string[]) {
-    const text = textSections.join('\n\n');
-    const utterance = new SpeechSynthesisUtterance(text);
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
-  }
-
-  function stopRead() {
-    if(speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
-    if (ttsPlayer) {
-      ttsPlayer.stop();
-    }
-  }
-
-  async function handleUrlFetch() {
-    articleText = '';
+  async function handleFetchArticle() {
+    statusText = '';
     const title = extractTitleFromUrl(wikiUrl);
     if (!title) {
-      articleText = '⚠️ Invalid Wikipedia URL';
+      statusText = '⚠️ Invalid Wikipedia URL';
       return;
     }
 
     try {
       const htmlArticle = await fetchArticle(title);
-      const parsedArticle = await parseWikipediaHtml(htmlArticle);
-
-      let selectedArticle: WikiSection[];
-      if(readFullArticle) {
-        selectedArticle = parsedArticle;
+      sections = await parseWikipediaHtml(htmlArticle);
+    }
+    catch (e) {
+        statusText = `❌ Error: ${(e as Error).message}`;
       }
-      else {
-        selectedArticle = [parsedArticle[0]];
-      }
+  }
 
-      // TODO: Rework this to query individual subsection chunks instead of only major sections
-      textSections = flattenWikiSections(selectedArticle, {
+  async function read() {
+    let textSections;
+    if(readFullArticle) {
+      textSections = flattenWikiSections(sections, {
         headingPrefix: level => '#'.repeat(level) + ' ',
         indent: () => '',
       });
-      articleText = textSections.join('\n\n');
-    } catch (e) {
-      articleText = `❌ Error: ${(e as Error).message}`;
     }
+    else {
+      textSections = flattenWikiSections([sections[0]], {
+        headingPrefix: level => '#'.repeat(level) + ' ',
+        indent: () => '',
+      });
+    }
+
+    ttsPlayer = new TTSSectionPlayer(textSections);
+    ttsPlayer.start();
   }
 
-  async function readText() {
-    switch (ttsType) {
-      case 'openai':
-        await readWithOpenAi(textSections);
-        break;
-      default:
-        readWithBrowserTTS(textSections);
+  function stopReading() {
+    if (ttsPlayer) {
+      ttsPlayer.stop();
     }
   }
 </script>
 
-<!-- TODO: Split article parsing from text area input testing -->
 
-<h1>WikiReader</h1>
-<select bind:value={ttsType}>
-  <option value="default" selected>Browser</option>
-  <option value="openai">Open AI</option>
-</select>
 
-<br />
+<div>
+  <input bind:value={wikiUrl} placeholder="Paste Wikipedia URL" />
+  <button on:click={handleFetchArticle}>Fetch Article</button>
+  {statusText}
+</div>
 
-<input bind:value={wikiUrl} placeholder="Paste Wikipedia URL" />
-<label><input type="checkbox" bind:checked={readFullArticle} />Read full article</label>
-<button on:click={handleUrlFetch}>Fetch Article</button>
+<div>
+  <label><input type="checkbox" bind:checked={readFullArticle} />Read full article</label>
+  <button on:click={read}>Read</button>
+  <button on:click={stopReading}>Stop Reading</button>
+</div>
 
-<br />
+<div class="sections">
+  {#each sections as section}
+    <WikiSectionDisplay {section} />
+  {/each}
+</div>
 
-<textarea bind:value={articleText} placeholder="Paste Text"  on:change={(event)=> { 
-  console.log(event?.target?.value);
-  textSections=[event?.target?.value || '']; 
-  }}></textarea>
-<button on:click={readText}>Read Text</button>
-<button on:click={stopRead}>Stop Reading</button>
-
-<br />
-
-<button on:click={readTestWithChunks}>Read with Chunks</button>
+<style>
+  .sections {
+    border: 1px solid #ccc;
+  }
+</style>

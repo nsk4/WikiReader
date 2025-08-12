@@ -1,9 +1,4 @@
-export interface WikiSection {
-  heading?: string;
-  level: number;
-  paragraphs: string[];
-  subsections: WikiSection[];
-}
+import type WikiSection from "./WikiSection";
 
 /**
  * Parses the HTML content returned by Wikipedia REST API.
@@ -26,7 +21,7 @@ export function parseWikipediaHtml(html: string): WikiSection[] {
 function parseSection(sectionEl: Element, expectedHeadingLevel: number): WikiSection {
   const headingTag = `h${expectedHeadingLevel}`;
   const headingEl = sectionEl.querySelector(headingTag);
-  const heading = headingEl?.textContent?.trim();
+  const heading = headingEl?.textContent?.trim() ?? "Introduction";
 
   // Extract top-level paragraphs (not nested)
   const paragraphs = Array.from(sectionEl.children)

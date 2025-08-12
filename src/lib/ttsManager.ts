@@ -125,6 +125,7 @@ export class TTSSectionPlayer {
     section.audioLoading = true;
     section.audioPromise = this.fetchTTS(section.text);
     section.audioPromise.then((blob) => {
+        console.log("TTS fetched for section:", section.text);
         section.audioBlob = blob;
         section.audioLoading = false;
         section.audioLoaded = true;
