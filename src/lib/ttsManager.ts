@@ -31,6 +31,8 @@ export class TTSSectionPlayer {
             return;
         }
 
+        // TODO: move prefetching of all TTS sections here
+
         this.isPlaying = true;
         this.play();
     }

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type WikiSection from '$lib/wikipedia/WikiSection';
+    import type { WikiSection } from '$lib/wikipedia/WikiSection';
     import WikiSectionDisplay from '$lib/components/WikiSectionDisplay.svelte';
 
     import { extractTitleFromUrl, fetchArticle } from '$lib/wikipedia/wiki';
@@ -29,19 +29,7 @@
     }
 
     async function read() {
-        let textSections;
-        if (readFullArticle) {
-            textSections = flattenWikiSections(sections, {
-                headingPrefix: (level) => '#'.repeat(level) + ' ',
-                indent: () => ''
-            });
-        } else {
-            textSections = flattenWikiSections([sections[0]], {
-                headingPrefix: (level) => '#'.repeat(level) + ' ',
-                indent: () => ''
-            });
-        }
-
+        const textSections = flattenWikiSections(readFullArticle ? sections : [sections[0]]);
         ttsPlayer = new TTSSectionPlayer(textSections);
         ttsPlayer.start();
     }
@@ -68,6 +56,7 @@
 <div class="sections">
     {#each sections as section}
         <WikiSectionDisplay {section} />
+        <hr />
     {/each}
 </div>
 

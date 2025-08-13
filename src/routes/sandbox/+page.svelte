@@ -57,10 +57,7 @@
             }
 
             // TODO: Rework this to query individual subsection chunks instead of only major sections
-            textSections = flattenWikiSections(selectedArticle, {
-                headingPrefix: (level) => '#'.repeat(level) + ' ',
-                indent: () => ''
-            });
+            textSections = flattenWikiSections(selectedArticle);
             articleText = textSections.join('\n\n');
         } catch (e) {
             articleText = `❌ Error: ${(e as Error).message}`;

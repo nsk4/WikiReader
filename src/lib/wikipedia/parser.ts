@@ -1,4 +1,4 @@
-import type WikiSection from './WikiSection';
+import type { WikiSection } from './WikiSection';
 
 /**
  * Parses the HTML content returned by Wikipedia REST API.
@@ -42,40 +42,24 @@ function parseSection(sectionEl: Element, expectedHeadingLevel: number): WikiSec
     };
 }
 
-export function flattenWikiSections(
-    sections: WikiSection[],
-    options?: {
-        headingPrefix?: (level: number) => string;
-        indent?: (level: number) => string;
-    }
-): string[] {
-    return sections.map((section) => flattenSingleSection(section, options));
+export function flattenWikiSections(sections: WikiSection[]): string[] {
+    return sections.map((section) => flattenSingleSection(section));
 }
 
-function flattenSingleSection(
-    section: WikiSection,
-    options?: {
-        headingPrefix?: (level: number) => string;
-        indent?: (level: number) => string;
-    }
-): string {
-    const { headingPrefix = () => '', indent = () => '' } = options || {};
-
+function flattenSingleSection(section: WikiSection): string {
     const parts: string[] = [];
 
     if (section.heading) {
-        const prefix = headingPrefix(section.level);
-        const pad = indent(section.level);
-        parts.push(`${pad}${prefix}${section.heading}`);
+        // TODO: Experiment to see what works best for emphasizing headings with TTS
+        parts.push(`${section.heading.toUpperCase()}!!`);
     }
 
     for (const para of section.paragraphs) {
-        const pad = indent(section.level);
-        parts.push(`${pad}${para}`);
+        parts.push(`${para}`);
     }
 
     for (const sub of section.subsections) {
-        parts.push(flattenSingleSection(sub, options));
+        parts.push(flattenSingleSection(sub));
     }
 
     return parts.join('\n\n');
