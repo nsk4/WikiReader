@@ -1,7 +1,7 @@
 <script lang="ts">
     import { extractTitleFromUrl, fetchArticle } from '$lib/wikipedia/wiki';
     import { parseWikipediaHtml, flattenWikiSections } from '$lib/wikipedia/parser';
-    import type WikiSection from '$lib/wikipedia/WikiSection';
+    import type { WikiSection } from '$lib/wikipedia/WikiSection';
     import { TTSSectionPlayer } from '$lib/ttsManager';
 
     let ttsType = 'default';

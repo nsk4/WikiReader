@@ -34,6 +34,16 @@
         ttsPlayer.start();
     }
 
+    async function testTTS() {
+        const textSections = [
+            'This is a test section 1.',
+            'This is a test section 2.',
+            'This is a test section 3.'
+        ];
+        ttsPlayer = new TTSSectionPlayer(textSections);
+        ttsPlayer.start();
+    }
+
     function stopReading() {
         if (ttsPlayer) {
             ttsPlayer.stop();
@@ -41,6 +51,7 @@
     }
 </script>
 
+<button on:click={testTTS}>Test TTS</button>
 <div>
     <input bind:value={wikiUrl} placeholder="Paste Wikipedia URL" />
     <button on:click={handleFetchArticle}>Fetch Article</button>

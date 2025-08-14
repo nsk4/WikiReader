@@ -1,12 +1,14 @@
 import { OPENAI_API_KEY } from '$env/static/private';
 import { json } from '@sveltejs/kit';
 
-export async function POST({ request }) {
+export async function POST({ request, fetch }) {
     console.log('Received TTS request');
     const { text, voice = 'coral', instructions = '' } = await request.json();
     console.log('Text:', text);
 
-    const res = await fetch('https://api.openai.com/v1/audio/speech', {
+    // TODO: Add caching in the future
+
+    const upstream = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${OPENAI_API_KEY}`,
@@ -20,16 +22,19 @@ export async function POST({ request }) {
             input: text,
             response_format: 'mp3',
             stream: true
-        })
+        }),
+        signal: request.signal
     });
 
-    console.log('TTS response status:', res.status);
+    console.log('TTS response status:', upstream.status);
 
-    if (!res.ok) {
+    if (!upstream.ok || !upstream.body) {
+        const errText = await upstream.text().catch(() => '');
+        console.error('TTS upstream error:', upstream.status, errText);
         return json({ error: 'TTS failed' }, { status: 500 });
     }
 
-    return new Response(res.body, {
+    return new Response(upstream.body, {
         headers: {
             'Content-Type': 'audio/mpeg',
             'Transfer-Encoding': 'chunked',
