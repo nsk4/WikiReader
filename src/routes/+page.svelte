@@ -1,35 +1,28 @@
 <script lang="ts">
     import type { WikiSection } from '$lib/wikipedia/WikiSection';
     import WikiSectionDisplay from '$lib/components/WikiSectionDisplay.svelte';
-
-    import { extractTitleFromUrl, fetchArticle } from '$lib/wikipedia/wiki';
-    import { parseWikipediaHtml, flattenWikiSections } from '$lib/wikipedia/parser';
+    import { getWikipediaArticle, flattenWikipediaSection } from '$lib/wikipedia/WikiParser';
     import { TTSSectionPlayer } from '$lib/ttsManager';
 
     let wikiUrl = '';
-    let statusText = ''; // ERROR
+    let errorStatusText = '';
     let sections: WikiSection[];
     let ttsPlayer: TTSSectionPlayer | null = null;
     let readFullArticle = false;
 
     async function handleFetchArticle() {
-        statusText = '';
-        const title = extractTitleFromUrl(wikiUrl);
-        if (!title) {
-            statusText = '⚠️ Invalid Wikipedia URL';
-            return;
-        }
-
+        errorStatusText = '';
         try {
-            const htmlArticle = await fetchArticle(title);
-            sections = await parseWikipediaHtml(htmlArticle);
+            sections = await getWikipediaArticle(wikiUrl);
         } catch (e) {
-            statusText = `❌ Error: ${(e as Error).message}`;
+            errorStatusText = `❌ ${(e as Error).message}`;
         }
     }
 
     async function read() {
-        const textSections = flattenWikiSections(readFullArticle ? sections : [sections[0]]);
+        const textSections = readFullArticle
+            ? sections.map((section) => flattenWikipediaSection(section))
+            : [flattenWikipediaSection(sections[0])];
         ttsPlayer = new TTSSectionPlayer(textSections);
         ttsPlayer.start();
     }
@@ -55,7 +48,7 @@
 <div>
     <input bind:value={wikiUrl} placeholder="Paste Wikipedia URL" />
     <button on:click={handleFetchArticle}>Fetch Article</button>
-    {statusText}
+    {errorStatusText}
 </div>
 
 <div>
