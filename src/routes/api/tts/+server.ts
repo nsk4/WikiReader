@@ -3,7 +3,7 @@ import { json } from '@sveltejs/kit';
 
 export async function POST({ request, fetch }) {
     console.log('Received TTS request');
-    const { text, voice = 'coral', instructions = '' } = await request.json();
+    const { text } = await request.json();
     console.log('Text:', text);
 
     // TODO: Add caching in the future
@@ -17,8 +17,9 @@ export async function POST({ request, fetch }) {
         },
         body: JSON.stringify({
             model: 'gpt-4o-mini-tts',
-            voice,
-            instructions,
+            voice: 'sage',
+            instructions:
+                'Read in a clear and confident tone with lively pacing. Use expressive intonation and gentle emphasis to highlight key ideas, making the narration feel inviting and encouraging while staying professional.',
             input: text,
             response_format: 'mp3',
             stream: true
