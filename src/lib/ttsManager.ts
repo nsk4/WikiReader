@@ -67,12 +67,12 @@ export class TTSSectionPlayer {
 
     private async fetchTTS(section: TTSSection): Promise<Blob> {
         if (section.audioLoaded) {
-            console.log('Audio already loaded for section: ', section.text);
+            console.log('Audio already loaded for section: ', section.text.substring(0, 10));
             return section.audioPromise;
         }
 
         if (section.audioLoading) {
-            console.log('Audio already loading for section: ', section.text);
+            console.log('Audio already loading for section: ', section.text.substring(0, 10));
             return section.audioPromise;
         }
 
@@ -83,7 +83,7 @@ export class TTSSectionPlayer {
                 return section.audioPromise;
             }
 
-            console.log('Requesting TTS for section:', section.text);
+            console.log('Requesting TTS for section:', section.text.substring(0, 10));
             const response = await fetch('/api/tts', {
                 method: 'POST',
                 signal: this.abortController.signal,
@@ -98,42 +98,68 @@ export class TTSSectionPlayer {
             await section.audioPromise;
 
             section.audioLoaded = true;
-            console.log('TTS fetched for section:', section.text);
+            console.log('TTS fetched for section:', section.text.substring(0, 10));
+            this.storeToCache(section);
         } catch (error) {
-            console.error('Error prefetching TTS:', section.text, error);
+            console.error(
+                'Error prefetching TTS:',
+                section.text.substring(0, 10),
+                'Error: ',
+                error
+            );
             section.audioLoaded = false;
         } finally {
             section.audioLoading = false;
         }
-
-        this.storeToCache(section);
 
         return section.audioPromise;
     }
 
     // TODO: For debugging purposes to reduce OpenAI token usage, remove in production
     private async storeToCache(section: TTSSection) {
-        const base64 = btoa(
-            String.fromCharCode(...new Uint8Array(await (await section.audioPromise).arrayBuffer()))
-        );
-        localStorage.setItem('blob_' + section.text, base64);
+        console.log('Storing TTS in cache for section:', section.text.substring(0, 10));
+        try {
+            // Use reader to convert blob to base64
+            const blob = await section.audioPromise;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                localStorage.setItem('blob_' + section.text, event.target.result);
+            };
+            reader.readAsDataURL(blob);
+            console.log('Stored TTS in cache for section:', section.text.substring(0, 10));
+        } catch (error) {
+            console.log(
+                'Failed to store TTS in cache for section:',
+                section.text.substring(0, 10),
+                'Error:',
+                error
+            );
+        }
     }
 
     // TODO: For debugging purposes to reduce OpenAI token usage, remove in production
     private getFromCache(section: TTSSection): boolean {
+        console.log('Checking cache for section:', section.text.substring(0, 10));
         const base64 = localStorage.getItem('blob_' + section.text);
         if (!base64) {
             return false;
         }
-        console.log('Using cached TTS for section:', section.text);
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
+        console.log('Using cached TTS for section:', section.text.substring(0, 10));
+
+        // Convert base64 to Blob
+        // TODO: Refactor and clarify this code
+        var byteString = atob(base64.split(',')[1]);
+        var mimeString = base64.split(',')[0].split(':')[1].split(';')[0];
+        var arrayBuffer = new ArrayBuffer(byteString.length);
+        var _ia = new Uint8Array(arrayBuffer);
+        for (var i = 0; i < byteString.length; i++) {
+            _ia[i] = byteString.charCodeAt(i);
         }
-        section.audioPromise = Promise.resolve(new Blob([bytes]));
+        var dataView = new DataView(arrayBuffer);
+        section.audioPromise = Promise.resolve(new Blob([dataView], { type: mimeString }));
+
         section.audioLoaded = true;
-        console.log('TTS fetched for section:', section.text);
+        console.log('TTS fetched for section:', section.text.substring(0, 10));
         return true;
     }
 
