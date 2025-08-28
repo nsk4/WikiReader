@@ -10,8 +10,10 @@ export class TTSSectionPlayer {
     private isPlaying;
     private abortController: AbortController;
     private audio = new Audio();
+    private passphrase: String;
 
-    constructor(sections: String[]) {
+    constructor(sections: String[], passphrase: String) {
+        this.passphrase = passphrase;
         this.queue = sections.map((section) => {
             return {
                 text: section,
@@ -88,7 +90,7 @@ export class TTSSectionPlayer {
                 method: 'POST',
                 signal: this.abortController.signal,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: section.text })
+                body: JSON.stringify({ text: section.text, passphrase: this.passphrase })
             });
             if (!response.ok) {
                 throw new Error(`TTS request failed: ${response.status} ${response.statusText}`);

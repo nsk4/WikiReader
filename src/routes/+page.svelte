@@ -9,6 +9,7 @@
     let sections: WikiSection[];
     let ttsPlayer: TTSSectionPlayer | null = null;
     let readFullArticle = false;
+    let passphrase = '';
 
     async function handleFetchArticle() {
         errorStatusText = '';
@@ -23,7 +24,7 @@
         const textSections = readFullArticle
             ? sections.map((section) => flattenWikipediaSection(section))
             : [flattenWikipediaSection(sections[0])];
-        ttsPlayer = new TTSSectionPlayer(textSections);
+        ttsPlayer = new TTSSectionPlayer(textSections, passphrase);
         ttsPlayer.start();
     }
 
@@ -33,7 +34,7 @@
             'This is a test section 2.',
             'This is a test section 3.'
         ];
-        ttsPlayer = new TTSSectionPlayer(textSections);
+        ttsPlayer = new TTSSectionPlayer(textSections, passphrase);
         ttsPlayer.start();
     }
 
@@ -52,6 +53,7 @@
 </div>
 
 <div>
+    <input bind:value={passphrase} placeholder="Passphrase" />
     <label><input type="checkbox" bind:checked={readFullArticle} />Read full article</label>
     <button on:click={read}>Read</button>
     <button on:click={stopReading}>Stop Reading</button>

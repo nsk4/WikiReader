@@ -1,10 +1,16 @@
 import { OPENAI_API_KEY } from '$env/static/private';
+import { ACCESS_PASSPHRASE } from '$env/static/private';
 import { json } from '@sveltejs/kit';
 
 export async function POST({ request, fetch }) {
     console.log('Received TTS request');
-    const { text } = await request.json();
-    console.log('Text:', text);
+    const { text, passphrase } = await request.json();
+    console.log('Text:', text, 'Passphrase:', passphrase);
+
+    if (passphrase !== ACCESS_PASSPHRASE) {
+        console.warn('Invalid passphrase attempt');
+        return json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // TODO: Add caching in the future
 
