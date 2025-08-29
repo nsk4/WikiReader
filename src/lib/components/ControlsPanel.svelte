@@ -25,6 +25,25 @@
     <div class="stack">
         <div class="h2">Playback options</div>
 
+        <!-- URL + fetch -->
+        <div class="field">
+            <label class="h2" for="wiki-url">Wikipedia link</label>
+            <input
+                id="wiki-url"
+                class="input"
+                type="url"
+                placeholder="https://en.wikipedia.org/wiki/Your_topic"
+                bind:value={wikiUrl}
+                aria-invalid={fetchError ? 'true' : 'false'}
+            />
+            {#if fetchError}<div class="error">{fetchError}</div>{/if}
+            <div class="field-row mt-8">
+                <button class="btn btn-primary" on:click={() => onFetch?.()} disabled={isFetching}>
+                    {#if isFetching}⏳ Fetching…{/if}{#if !isFetching}Fetch Article{/if}
+                </button>
+            </div>
+        </div>
+
         <!-- Engine -->
         <div class="field">
             <label class="h2" for="tts-engine">TTS Engine</label>
@@ -56,7 +75,7 @@
         </div>
 
         <!-- OpenAI TTS passphrase -->
-        {#if engine === 'openai'}
+        {#if engine === Engine.OPENAI}
             <div class="field">
                 <label class="h2" for="tts-pass">Passphrase</label>
                 <input
@@ -70,25 +89,6 @@
                 <div class="helper">Required only for OpenAI TTS.</div>
             </div>
         {/if}
-
-        <!-- URL + fetch -->
-        <div class="field">
-            <label class="h2" for="wiki-url">Wikipedia link</label>
-            <input
-                id="wiki-url"
-                class="input"
-                type="url"
-                placeholder="https://en.wikipedia.org/wiki/Your_topic"
-                bind:value={wikiUrl}
-                aria-invalid={fetchError ? 'true' : 'false'}
-            />
-            {#if fetchError}<div class="error">{fetchError}</div>{/if}
-            <div class="field-row mt-8">
-                <button class="btn btn-primary" on:click={() => onFetch?.()} disabled={isFetching}>
-                    {#if isFetching}⏳ Fetching…{/if}{#if !isFetching}Fetch Article{/if}
-                </button>
-            </div>
-        </div>
 
         <!-- Intro / Full -->
         <div class="field">
