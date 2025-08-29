@@ -111,7 +111,7 @@
     }
 </script>
 
-<div class="container" style="padding-top:14px;padding-bottom:70px;">
+<div class="container" style="padding-top:14px;">
     <div class="mb-16">
         <h1 class="h1">WikiReader <span class="badge">MVP</span></h1>
         <p class="p">Turn Wikipedia into audio. Paste a link, choose TTS, and hit Start!</p>
