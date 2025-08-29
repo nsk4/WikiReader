@@ -13,7 +13,7 @@
 <InfoBanner
     label="MVP"
     message="Early MVP: expect rough edges; feedback welcome!"
-    link={{ href: 'https://github.com/yourrepo', text: 'GitHub' }}
+    link={{ href: 'https://github.com/nsk4/WikiReader', text: 'GitHub' }}
 />
 
 <slot />
@@ -21,7 +21,10 @@
 <StatusBar {status} />
 
 <SiteFooter
-    licenseHref="https://github.com/yourrepo/blob/main/LICENSE"
-    repoHref="https://github.com/yourrepo"
-    bugHref="https://github.com/yourrepo/issues/new?labels=bug"
+    owner="Nejc Smrkolj Koželj"
+    year={new Date().getFullYear()}
+    version="MVP-1.0.0"
+    licenseHref="https://github.com/nsk4/WikiReader/blob/main/LICENSE"
+    repoHref="https://github.com/nsk4/WikiReader"
+    bugHref="https://github.com/nsk4/WikiReader/issues/new?labels=bug"
 />

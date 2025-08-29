@@ -1,6 +1,7 @@
 <script lang="ts">
-    export let owner = 'Nejc Smrkolj Koželj';
+    export let owner = 'yourname';
     export let year = new Date().getFullYear();
+    export let version: string | null = null;
     export let licenseHref = 'https://github.com/yourrepo/blob/main/LICENSE';
     export let repoHref = 'https://github.com/yourrepo';
     export let bugHref = 'https://github.com/yourrepo/issues/new?labels=bug';
@@ -20,6 +21,10 @@
             <a href={repoHref} target="_blank" rel="noopener noreferrer">GitHub</a>
             <span aria-hidden="true">·</span>
             <a href={bugHref} target="_blank" rel="noopener noreferrer">Report a bug</a>
+            {#if version}
+                <span aria-hidden="true">·</span>
+                <span title="Deployment version">v{version}</span>
+            {/if}
         </nav>
     </div>
 </div>
