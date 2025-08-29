@@ -5,12 +5,19 @@ interface TTSSection {
     audioPromise: Promise<Blob>;
 }
 
-export class TTSSectionPlayer {
+// Manages TTS playback for multiple sections
+export class TtsSectionPlayer {
     private queue: TTSSection[];
     private isPlaying;
     private abortController: AbortController;
-    private audio = new Audio();
     private passphrase: String;
+    private audio = new Audio();
+    public onStart: (() => void) | null = null;
+    public onSectionStart: ((position: number, section: string) => void) | null = null;
+    public onSectionEnd: ((position: number, section: string) => void) | null = null;
+    public onEnd: (() => void) | null = null;
+    public onStop: (() => void) | null = null;
+    public onError: ((error: string) => void) | null = null;
 
     constructor(sections: String[], passphrase: String) {
         this.passphrase = passphrase;
@@ -28,6 +35,8 @@ export class TTSSectionPlayer {
 
     public start() {
         if (this.queue.length === 0) {
+            console.error('No sections to play');
+            this.onError?.('No sections to play');
             return;
         }
 
@@ -43,14 +52,18 @@ export class TTSSectionPlayer {
     private async play() {
         console.log('Sections to play: ', this.queue.length);
         this.isPlaying = true;
+        this.onStart?.();
         for (let i = 0; i < this.queue.length; i++) {
             console.log('Chunk playing:', i);
             // TODO: audio loading could fail
+            this.onSectionStart?.(i, this.queue[i].text);
             const audioBlob = await this.queue[i].audioPromise;
             await this.playAudioBlob(audioBlob);
             console.log('Chunk played:', i);
+            this.onSectionEnd?.(i, this.queue[i].text);
         }
         this.isPlaying = false;
+        this.onEnd?.();
     }
 
     private playAudioBlob(blob: Blob): Promise<void> {
@@ -110,6 +123,11 @@ export class TTSSectionPlayer {
                 error
             );
             section.audioLoaded = false;
+            this.onError?.(
+                'Error prefetching TTS: ' + section.text.substring(0, 10) + '\r\nError: ' + error
+            );
+
+            // TODO: What to do if TTS fetching fails? Skip section or stop playback?
         } finally {
             section.audioLoading = false;
         }
@@ -130,11 +148,18 @@ export class TTSSectionPlayer {
             reader.readAsDataURL(blob);
             console.log('Stored TTS in cache for section:', section.text.substring(0, 10));
         } catch (error) {
-            console.log(
+            console.error(
                 'Failed to store TTS in cache for section:',
                 section.text.substring(0, 10),
                 'Error:',
                 error
+            );
+
+            this.onError?.(
+                'Failed to store TTS in cache for section: ' +
+                    section.text.substring(0, 10) +
+                    '\r\nError: ' +
+                    error
             );
         }
     }
@@ -166,8 +191,12 @@ export class TTSSectionPlayer {
     }
 
     public stop() {
+        if (!this.isPlaying) {
+            return;
+        }
         this.abortController.abort();
         this.audio.pause();
         this.isPlaying = false;
+        this.onStop?.();
     }
 }

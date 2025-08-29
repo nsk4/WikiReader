@@ -54,6 +54,25 @@ function parseSection(sectionEl: Element, expectedHeadingLevel: number): WikiSec
             const text = el.textContent?.trim();
             return text ? [text] : [];
         }
+        if (tag === 'dl') {
+            // Handle description lists by joining dt and dd pairs
+            const items = Array.from(el.children);
+            const texts: string[] = [];
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.tagName.toLowerCase() === 'dt') {
+                    const dtText = item.textContent?.trim();
+                    const ddText =
+                        i + 1 < items.length && items[i + 1].tagName.toLowerCase() === 'dd'
+                            ? items[i + 1].textContent?.trim()
+                            : '';
+                    if (dtText) {
+                        texts.push(ddText ? `${dtText}: ${ddText}` : dtText);
+                    }
+                }
+            }
+            return texts;
+        }
         if (tag === 'ul' || tag === 'ol') {
             const items = Array.from(el.children)
                 .filter((li) => li.tagName.toLowerCase() === 'li')
@@ -73,7 +92,6 @@ function parseSection(sectionEl: Element, expectedHeadingLevel: number): WikiSec
 
     return {
         heading,
-        level: expectedHeadingLevel,
         paragraphs,
         subsections
     };
