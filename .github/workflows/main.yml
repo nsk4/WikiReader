@@ -1,0 +1,52 @@
+name: Deploy to Vercel (main & releases)
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      # Checkout: main for pushes, tag for releases
+      - name: Checkout (push)
+        if: github.event_name != 'release'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout (release tag)
+        if: github.event_name == 'release'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+
+      # Pull Vercel env (Production)
+      - name: Vercel env pull
+        run: npx vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+
+      # Build & deploy to Production
+      - name: Build
+        run: npx vercel@latest build --prod --token "$VERCEL_TOKEN"
+
+      - name: Deploy
+        run: npx vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN"
