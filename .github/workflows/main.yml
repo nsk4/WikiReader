@@ -1,52 +1,71 @@
-name: Deploy to Vercel (main & releases)
+# .github/workflows/deploy.yml
+name: Deploy to Vercel (npm)
 
 on:
-  push:
-    branches: [ main ]
-  release:
-    types: [ published ]
+    push:
+        branches: [main]
+    release:
+        types: [published]
 
 concurrency:
-  group: vercel-${{ github.ref }}
-  cancel-in-progress: true
+    group: vercel-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    preview:
+        if: github.event_name == 'push'
+        runs-on: ubuntu-latest
+        env:
+            VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+            VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+            VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-    steps:
-      # Checkout: main for pushes, tag for releases
-      - name: Checkout (push)
-        if: github.event_name != 'release'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: npm
 
-      - name: Checkout (release tag)
+            - run: npm ci
+
+            - name: Pull Vercel env (preview)
+              run: npx vercel@latest pull --yes --environment=preview --token "$VERCEL_TOKEN"
+
+            - name: Build (preview)
+              run: npx vercel@latest build --token "$VERCEL_TOKEN"
+
+            - name: Deploy (preview)
+              run: npx vercel@latest deploy --prebuilt --token "$VERCEL_TOKEN"
+
+    production:
         if: github.event_name == 'release'
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.tag_name }}
-          fetch-depth: 0
+        runs-on: ubuntu-latest
+        environment: production # creates a GitHub Deployment entry
+        env:
+            VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+            VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+            VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.release.tag_name }}
+                  fetch-depth: 0
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: npm
 
-      - run: corepack enable
-      - run: pnpm install --frozen-lockfile
+            - run: npm ci
 
-      # Pull Vercel env (Production)
-      - name: Vercel env pull
-        run: npx vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+            - name: Pull Vercel env (production)
+              run: npx vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
 
-      # Build & deploy to Production
-      - name: Build
-        run: npx vercel@latest build --prod --token "$VERCEL_TOKEN"
+            - name: Build (production)
+              run: npx vercel@latest build --prod --token "$VERCEL_TOKEN"
 
-      - name: Deploy
-        run: npx vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+            - name: Deploy (production)
+              run: npx vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN"
