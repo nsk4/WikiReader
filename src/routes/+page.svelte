@@ -118,9 +118,7 @@
     </div>
 
     <div class="grid">
-        <div class="stack">
-            <UsageHelp compact={false} />
-
+        <div class="stack controls">
             <ControlsPanel
                 bind:engine
                 bind:wikiUrl
@@ -137,5 +135,9 @@
         </div>
 
         <ArticleTree {sections} {currentPlayingIndex} />
+
+        <div class="stack help">
+            <UsageHelp compact={false} />
+        </div>
     </div>
 </div>
