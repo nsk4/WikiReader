@@ -35,7 +35,7 @@ export async function POST({ request, fetch }) {
 
     if (!upstream.ok || !upstream.body) {
         const errText = await upstream.text().catch(() => '');
-        console.error('TTS upstream error:', upstream.status, errText);
+        console.error('TTS upstream error:', upstream.status, upstream.statusText, errText);
 
         if (upstream.status === 401) {
             return json(

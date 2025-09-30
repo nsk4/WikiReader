@@ -112,7 +112,10 @@ export class TtsSectionPlayer {
                 body: JSON.stringify({ text: section.text, apiKey: this.apiKey })
             });
             if (!response.ok) {
-                throw new Error(`TTS request failed: ${response.status} ${response.statusText}`);
+                // TODO: Parse the actual error message as statusText is just a fixed string based on status code.
+                throw new Error(
+                    `TTS request failed with ${response.status} ${response.statusText}`
+                );
             }
 
             section.audioPromise = response.blob();
@@ -122,9 +125,10 @@ export class TtsSectionPlayer {
             console.log('TTS fetched for section:', sectionHeading);
             this.storeToCache(section, sectionHeading);
         } catch (error) {
-            console.error('Error prefetching TTS:', sectionHeading, 'Error: ', error);
+            console.warn(error); // XXX
+            console.error('Error prefetching TTS:', sectionHeading, error);
             section.audioLoaded = false;
-            this.onError?.('Error prefetching TTS: ' + sectionHeading + '\r\nError: ' + error);
+            this.onError?.('Error prefetching TTS: ' + sectionHeading + ', ' + error);
 
             // TODO: What to do if TTS fetching fails? Skip section or stop playback?
         } finally {
@@ -147,18 +151,9 @@ export class TtsSectionPlayer {
             reader.readAsDataURL(blob);
             console.log('Stored TTS in cache for section:', sectionHeading);
         } catch (error) {
-            console.error(
-                'Failed to store TTS in cache for section:',
-                sectionHeading,
-                'Error:',
-                error
-            );
-
+            console.error('Failed to store TTS in cache for section:', sectionHeading, error);
             this.onError?.(
-                'Failed to store TTS in cache for section: ' +
-                    sectionHeading +
-                    '\r\nError: ' +
-                    error
+                'Failed to store TTS in cache for section: ' + sectionHeading + ', ' + error
             );
         }
     }
