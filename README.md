@@ -10,9 +10,7 @@ official Wikipedia REST API, parses them and reads them aloud in near real-time.
 - Paste a Wikipedia article URL and click Fetch Article.
 - The app fetches the main article text via the Wikipedia public API and parses it.
 - Uncheck "Read introduction only" if you want the whole article to be read.
-- Browser's build-in support is local and free, for OpenAI you have to add your OpenAI API key to
-  the env variable. For tightened security you can also add a passphrase if you want to share public
-  deployment with only selected users.
+- Browser's build-in support is local and free. For OpenAI you need to provide your own OpenAI API key. Note: API key is only used for TTS request and is not stored. Cost of TTS depends on the article length and is billed directly by OpenAI from your account. 
 
 ## Getting Started
 

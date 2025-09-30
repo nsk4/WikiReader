@@ -5,7 +5,7 @@
     export let engine: Engine = Engine.BROWSER;
     export let wikiUrl = '';
     export let introOnly = true;
-    export let passphrase = ''; // Temporary passphrase for OpenAI API access
+    export let openaiApiKey = ''; // User-provided OpenAI API key for TTS
 
     // Status (passed from parent)
     export let isFetching = false;
@@ -19,6 +19,8 @@
     export let onStop: (() => void) | null = null;
 
     const setEngine = (val: Engine) => (engine = val);
+
+    $: isApiKeyMissing = engine === Engine.OPENAI && openaiApiKey.trim().length === 0;
 </script>
 
 <div class="panel" style="padding:16px;">
@@ -74,19 +76,22 @@
             </div>
         </div>
 
-        <!-- OpenAI TTS passphrase -->
+        <!-- OpenAI TTS API key -->
         {#if engine === Engine.OPENAI}
             <div class="field">
-                <label class="h2" for="tts-pass">Passphrase</label>
+                <label class="h2" for="tts-api-key">OpenAI API key</label>
                 <input
-                    id="tts-pass"
+                    id="tts-api-key"
                     class="input"
                     type="password"
-                    placeholder="Enter demo passphrase"
-                    bind:value={passphrase}
+                    placeholder="sk-..."
+                    bind:value={openaiApiKey}
                     autocomplete="off"
                 />
-                <div class="helper">Required only for OpenAI TTS.</div>
+                <div class="helper">Provide the API key that has access to OpenAI text-to-speech.</div>
+                {#if isApiKeyMissing}
+                    <div class="error">API key required to enable OpenAI playback.</div>
+                {/if}
             </div>
         {/if}
 
@@ -104,7 +109,7 @@
             <button
                 class="btn btn-primary"
                 on:click={() => onStart?.()}
-                disabled={!canStart || isFetching || isPlaying}
+                disabled={!canStart || isFetching || isPlaying || isApiKeyMissing}
             >
                 ▶ Start
             </button>

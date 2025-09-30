@@ -10,7 +10,7 @@ export class TtsSectionPlayer {
     private queue: TTSSection[];
     private isPlaying;
     private abortController: AbortController;
-    private passphrase: String;
+    private apiKey: string;
     private audio = new Audio();
     public onStart: (() => void) | null = null;
     public onSectionStart: ((position: number, section: string) => void) | null = null;
@@ -19,8 +19,8 @@ export class TtsSectionPlayer {
     public onStop: (() => void) | null = null;
     public onError: ((error: string) => void) | null = null;
 
-    constructor(sections: String[], passphrase: String) {
-        this.passphrase = passphrase;
+    constructor(sections: string[], apiKey: string) {
+        this.apiKey = apiKey.trim();
         this.queue = sections.map((section) => {
             return {
                 text: section,
@@ -34,6 +34,11 @@ export class TtsSectionPlayer {
     }
 
     public start() {
+        if (!this.apiKey) {
+            console.error('OpenAI API key missing for TTS playback');
+            this.onError?.('OpenAI API key missing.');
+            return;
+        }
         if (this.queue.length === 0) {
             console.error('No sections to play');
             this.onError?.('No sections to play');
@@ -103,7 +108,7 @@ export class TtsSectionPlayer {
                 method: 'POST',
                 signal: this.abortController.signal,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: section.text, passphrase: this.passphrase })
+                body: JSON.stringify({ text: section.text, apiKey: this.apiKey })
             });
             if (!response.ok) {
                 throw new Error(`TTS request failed: ${response.status} ${response.statusText}`);

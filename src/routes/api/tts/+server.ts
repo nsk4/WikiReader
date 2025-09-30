@@ -1,23 +1,22 @@
-import { OPENAI_API_KEY } from '$env/static/private';
-import { ACCESS_PASSPHRASE } from '$env/static/private';
 import { json } from '@sveltejs/kit';
 
 export async function POST({ request, fetch }) {
     console.log('Received TTS request');
-    const { text, passphrase } = await request.json();
-    console.log('Text:', text, 'Passphrase:', passphrase);
+    const { text, apiKey } = await request.json();
+    console.log('Text:', text, 'API Key:', apiKey);
 
-    if (passphrase !== ACCESS_PASSPHRASE) {
-        console.warn('Invalid passphrase attempt');
-        return json({ error: 'Unauthorized' }, { status: 401 });
+    if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length === 0) {
+        console.error('Missing OpenAI API key');
+        return json({ error: 'Missing OpenAI API key' }, { status: 400 });
     }
+    const trimmedKey = apiKey.trim();
 
     // TODO: Add caching in the future
 
     const upstream = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            Authorization: `Bearer ${trimmedKey}`,
             'Content-Type': 'application/json',
             Accept: 'audio/mpeg'
         },

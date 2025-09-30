@@ -13,7 +13,7 @@
     let engine: Engine = Engine.BROWSER;
     let wikiUrl = '';
     let introOnly = true;
-    let passphrase = '';
+    let openaiApiKey = '';
 
     // Status
     let isFetching = false;
@@ -68,7 +68,7 @@
             : sections.map((section) => flattenWikipediaSection(section));
         switch (engine) {
             case Engine.OPENAI:
-                ttsPlayer = new TtsSectionPlayer(textSections, passphrase);
+                ttsPlayer = new TtsSectionPlayer(textSections, openaiApiKey);
                 ttsPlayer.onSectionStart = (index) => {
                     currentPlayingIndex = index;
                 };
@@ -123,7 +123,7 @@
                 bind:engine
                 bind:wikiUrl
                 bind:introOnly
-                bind:passphrase
+                bind:openaiApiKey
                 {isFetching}
                 {isPlaying}
                 {fetchError}
