@@ -14,6 +14,11 @@ official Wikipedia REST API, parses them and reads them aloud in near real-time.
   the env variable. For tightened security you can also add a passphrase if you want to share public
   deployment with only selected users.
 
+## Getting Started
+
+- Run `npm install` to install dependencies.
+- Run `npm run dev` to start the development server.
+
 ## 🚧 Note
 
 This project is built with SvelteKit and TypeScript and is under active development. Expect bugs!
