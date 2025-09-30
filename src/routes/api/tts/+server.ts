@@ -3,20 +3,19 @@ import { json } from '@sveltejs/kit';
 export async function POST({ request, fetch }) {
     console.log('Received TTS request');
     const { text, apiKey } = await request.json();
-    console.log('API Key:', apiKey, 'Text:', text);
+    console.log('Text:', text);
 
     if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length === 0) {
         console.error('Missing OpenAI API key');
         return json({ error: 'Missing OpenAI API key' }, { status: 400 });
     }
-    const trimmedKey = apiKey.trim();
 
     // TODO: Add caching in the future
 
     const upstream = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
-            Authorization: `Bearer ${trimmedKey}`,
+            Authorization: `Bearer ${apiKey.trim()}`,
             'Content-Type': 'application/json',
             Accept: 'audio/mpeg'
         },
