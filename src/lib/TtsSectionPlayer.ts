@@ -47,8 +47,8 @@ export class TtsSectionPlayer {
 
         // Start fetching TTS for all sections
         console.log('Starting TTS playback for sections:', this.queue.length);
-        this.queue.forEach((section) => {
-            section.audioPromise = this.fetchTTS(section);
+        this.queue.forEach((section, index) => {
+            section.audioPromise = this.fetchTTS(section, index);
         });
 
         this.play();
@@ -85,25 +85,26 @@ export class TtsSectionPlayer {
         });
     }
 
-    private async fetchTTS(section: TTSSection): Promise<Blob> {
+    private async fetchTTS(section: TTSSection, index: number): Promise<Blob> {
+        const sectionHeading = this.extractSectionHeading(section.text, index);
         if (section.audioLoaded) {
-            console.log('Audio already loaded for section: ', section.text.substring(0, 10));
+            console.log('Audio already loaded for section: ', sectionHeading);
             return section.audioPromise;
         }
 
         if (section.audioLoading) {
-            console.log('Audio already loading for section: ', section.text.substring(0, 10));
+            console.log('Audio already loading for section: ', sectionHeading);
             return section.audioPromise;
         }
 
         section.audioLoaded = false;
         section.audioLoading = true;
         try {
-            if (this.getFromCache(section)) {
+            if (this.getFromCache(section, sectionHeading)) {
                 return section.audioPromise;
             }
 
-            console.log('Requesting TTS for section:', section.text.substring(0, 10));
+            console.log('Requesting TTS for section:', sectionHeading);
             const response = await fetch('/api/tts', {
                 method: 'POST',
                 signal: this.abortController.signal,
@@ -118,19 +119,12 @@ export class TtsSectionPlayer {
             await section.audioPromise;
 
             section.audioLoaded = true;
-            console.log('TTS fetched for section:', section.text.substring(0, 10));
-            this.storeToCache(section);
+            console.log('TTS fetched for section:', sectionHeading);
+            this.storeToCache(section, sectionHeading);
         } catch (error) {
-            console.error(
-                'Error prefetching TTS:',
-                section.text.substring(0, 10),
-                'Error: ',
-                error
-            );
+            console.error('Error prefetching TTS:', sectionHeading, 'Error: ', error);
             section.audioLoaded = false;
-            this.onError?.(
-                'Error prefetching TTS: ' + section.text.substring(0, 10) + '\r\nError: ' + error
-            );
+            this.onError?.('Error prefetching TTS: ' + sectionHeading + '\r\nError: ' + error);
 
             // TODO: What to do if TTS fetching fails? Skip section or stop playback?
         } finally {
@@ -141,8 +135,8 @@ export class TtsSectionPlayer {
     }
 
     // TODO: For debugging purposes to reduce OpenAI token usage, remove in production
-    private async storeToCache(section: TTSSection) {
-        console.log('Storing TTS in cache for section:', section.text.substring(0, 10));
+    private async storeToCache(section: TTSSection, sectionHeading: string) {
+        console.log('Storing TTS in cache for section:', sectionHeading);
         try {
             // Use reader to convert blob to base64
             const blob = await section.audioPromise;
@@ -151,18 +145,18 @@ export class TtsSectionPlayer {
                 localStorage.setItem('blob_' + section.text, event.target.result);
             };
             reader.readAsDataURL(blob);
-            console.log('Stored TTS in cache for section:', section.text.substring(0, 10));
+            console.log('Stored TTS in cache for section:', sectionHeading);
         } catch (error) {
             console.error(
                 'Failed to store TTS in cache for section:',
-                section.text.substring(0, 10),
+                sectionHeading,
                 'Error:',
                 error
             );
 
             this.onError?.(
                 'Failed to store TTS in cache for section: ' +
-                    section.text.substring(0, 10) +
+                    sectionHeading +
                     '\r\nError: ' +
                     error
             );
@@ -170,13 +164,13 @@ export class TtsSectionPlayer {
     }
 
     // TODO: For debugging purposes to reduce OpenAI token usage, remove in production
-    private getFromCache(section: TTSSection): boolean {
-        console.log('Checking cache for section:', section.text.substring(0, 10));
+    private getFromCache(section: TTSSection, sectionHeading: string): boolean {
+        console.log('Checking cache for section:', sectionHeading);
         const base64 = localStorage.getItem('blob_' + section.text);
         if (!base64) {
             return false;
         }
-        console.log('Using cached TTS for section:', section.text.substring(0, 10));
+        console.log('Using cached TTS for section:', sectionHeading);
 
         // Convert base64 to Blob
         // TODO: Refactor and clarify this code
@@ -191,7 +185,7 @@ export class TtsSectionPlayer {
         section.audioPromise = Promise.resolve(new Blob([dataView], { type: mimeString }));
 
         section.audioLoaded = true;
-        console.log('TTS fetched for section:', section.text.substring(0, 10));
+        console.log('TTS fetched for section:', sectionHeading);
         return true;
     }
 
@@ -203,5 +197,10 @@ export class TtsSectionPlayer {
         this.audio.pause();
         this.isPlaying = false;
         this.onStop?.();
+    }
+
+    private extractSectionHeading(section: string, index: number): string {
+        // TODO: This is a temp workaround until we have structured sections from the parser
+        return `${index}_${section.substring(0, section.indexOf('!!')).trim()}`;
     }
 }

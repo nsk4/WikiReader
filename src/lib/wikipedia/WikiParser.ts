@@ -1,5 +1,7 @@
 import type { WikiSection } from './WikiSection';
 
+const headingSuffix = '!!'; // Emphasize headings for TTS
+
 export function getWikipediaArticle(url: string): Promise<WikiSection[]> {
     return fetchArticle(url).then((html) => cleanWikiSections(parseHtml(html)));
 }
@@ -148,7 +150,7 @@ export function flattenWikipediaSection(section: WikiSection): string {
 
     if (section.heading) {
         // TODO: Experiment to see what works best for emphasizing headings with TTS
-        parts.push(`${section.heading.toUpperCase()}!!`);
+        parts.push(`${section.heading.toUpperCase()}${headingSuffix}`); // Emphasize headings for TTS
     }
 
     for (const para of section.paragraphs) {
