@@ -3,7 +3,7 @@ import { json } from '@sveltejs/kit';
 export async function POST({ request, fetch }) {
     console.log('Received TTS request');
     const { text, apiKey } = await request.json();
-    console.log('Text:', text, 'API Key:', apiKey);
+    console.log('API Key:', apiKey, 'Text:', text);
 
     if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length === 0) {
         console.error('Missing OpenAI API key');
@@ -37,7 +37,14 @@ export async function POST({ request, fetch }) {
     if (!upstream.ok || !upstream.body) {
         const errText = await upstream.text().catch(() => '');
         console.error('TTS upstream error:', upstream.status, errText);
-        return json({ error: 'TTS failed' }, { status: 500 });
+
+        if (upstream.status === 401) {
+            return json(
+                { error: 'Invalid or unauthorized OpenAI API key.' },
+                { status: upstream.status }
+            );
+        }
+        return json({ error: 'Upstream TTS failed' }, { status: 502 });
     }
 
     return new Response(upstream.body, {
